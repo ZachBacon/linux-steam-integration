@@ -1,6 +1,6 @@
 AC_INIT([linux-steam-integration], 0.3, [ikey@solus-project.com], [linux-steam-integration], [https://github.com/solus-project/linux-steam-integration/issues])
 AC_CONFIG_AUX_DIR([build-aux])
-AM_INIT_AUTOMAKE([-Wno-portability no-dist-gzip dist-xz foreign subdir-objects])
+AM_INIT_AUTOMAKE([-Wno-portability no-dist-gzip dist-xz foreign])
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CC_STDC
@@ -15,8 +15,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_CONDITIONAL([NICA_SUBMODULE], true)
 AM_CONDITIONAL([COVERAGE], false)
 
-AC_CONFIG_FILES([Makefile
-                 src/libnica/Makefile])
 
 # Check if we're using the new C++ ABI, which will require LD_PRELOAD magic
 AC_LANG_PUSH([C++])
@@ -83,6 +81,36 @@ if test "x$enable_frontend" = "xyes" ; then
 fi
 AM_CONDITIONAL([HAVE_FRONTEND], [test x$have_frontend = "xyes"])
 
+# Check if libintercept is requested
+have_intercept="no"
+have_emul32="no"
+AC_ARG_ENABLE(intercept, AS_HELP_STRING([--enable-intercept], [enable libintercept]))
+if test "x$enable_intercept" = "xyes" ; then
+        AC_DEFINE([HAVE_INTERCEPT], [1], [Enabled libintercept])
+        have_intercept="yes"
+
+
+        AC_ARG_ENABLE(emul32, AS_HELP_STRING([--enable-emul32], [enable emul32]))
+        if test "x$enable_emul32" = "xyes" ; then
+                AC_DEFINE([HAVE_EMUL32], [1], [Enabled emul32])
+                have_intercept="yes"
+                have_emul32="yes"
+                # Location of emul32 dir
+                AC_ARG_WITH([emul32-libdir], AS_HELP_STRING([--with-emul32-libdir],
+                        [the emul32 libdirectory]), [emul32libdir=${withval}],
+                        [emul32libdir="/usr/lib32"])
+
+                adl_RECURSIVE_EVAL(["$emul32libdir"], [EMUL32LIBDIR])
+                AC_SUBST(EMUL32LIBDIR)
+
+                AC_DEFINE_UNQUOTED(EMUL32LIBDIR, "$EMUL32LIBDIR",
+                                   [The location of lib32 directory])
+        fi
+
+fi
+AM_CONDITIONAL([HAVE_INTERCEPT], [test x$have_intercept = "xyes"])
+AM_CONDITIONAL([HAVE_EMUL32], [test x$have_emul32 = "xyes"])
+
 # Whether LSI should stand in for steam binary
 replace_steam="yes"
 AC_ARG_ENABLE(replace-steam, AS_HELP_STRING([--disable-replace-steam], [disable Steam binary replacement]))
@@ -93,6 +121,12 @@ if test "x$replace_steam" = "xyes" ; then
     AC_DEFINE([REPLACE_STEAM], [1], [Steam binary will be replaced])
 fi
 AM_CONDITIONAL([REPLACE_STEAM], [test x$replace_steam = "xyes"])
+
+AC_CONFIG_FILES([Makefile
+                 src/libnica/Makefile
+                 src/intercept/Makefile
+                 src/intercept/native/Makefile
+                 src/intercept/emul32/Makefile])
 
 AC_OUTPUT
 
@@ -112,6 +146,10 @@ AC_MSG_RESULT([
         Real Steam binary:      ${STEAMBIN}
         GTK+ Frontend:          ${have_frontend}
         preload-libs:           ${preloadlibs}
+
+        libintercept:           ${have_intercept}
+        libintercept32:         ${have_emul32}
+        emul32 libdir:          ${emul32libdir}
 
         compiler:               ${CC}
         cflags:                 ${CFLAGS}

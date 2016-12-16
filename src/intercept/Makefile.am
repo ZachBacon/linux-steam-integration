@@ -1,0 +1,3 @@
+SUBDIRS = \
+	native \
+	emul32

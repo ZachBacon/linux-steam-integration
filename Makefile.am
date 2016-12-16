@@ -19,7 +19,9 @@ AM_CPPFLAGS = \
 	-DSYSTEMCONFDIR=\"$(sysconfdir)\" \
 	-DVENDORDIR=\"$(datadir)/defaults/linux-steam-integration\"
 
-SUBDIRS = src/libnica
+SUBDIRS = \
+	src/libnica \
+	src/intercept
 
 noinst_LTLIBRARIES = \
 	liblsi.la
